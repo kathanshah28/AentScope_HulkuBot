@@ -114,6 +114,20 @@ void loop() {
           Wire.write(state); // 0x00 for OFF (Drag mode), 0x01 for ON (Hold mode)
           Wire.endTransmission();
         }
+
+        // ---------------------------------
+        // COMMAND 5: RGB LED
+        // ---------------------------------
+        else if (cmd == 0x05) {
+          uint8_t rgb[3];
+          Serial.readBytes(rgb, 3);
+          Wire.beginTransmission(DOF_BOARD_ADDR);
+          Wire.write(0x02); // RGB Reg
+          Wire.write(rgb[0]); // R
+          Wire.write(rgb[1]); // G
+          Wire.write(rgb[2]); // B
+          Wire.endTransmission();
+        }
       }
     }
   }

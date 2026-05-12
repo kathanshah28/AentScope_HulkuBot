@@ -337,6 +337,7 @@
                         inputStatus.textContent = '';
                         const prefix = result.success ? '✅' : '❌';
                         addMessage('assistant', prefix + ' ' + result.message);
+                        speakText(result.message);
                     }
                 }
             }
@@ -388,8 +389,8 @@
                     const data = await res.json();
                     if (data.text) {
                         textInput.value = data.text;
-                        inputStatus.textContent = '✅ "' + data.text + '" — Press Enter or edit.';
-                        textInput.focus();
+                        inputStatus.textContent = '✅ Transcribed successfully.';
+                        sendMessage(data.text);
                     } else {
                         inputStatus.textContent = '❌ ' + (data.error || 'No text detected.');
                     }
@@ -497,6 +498,19 @@
         } catch (e) {}
     }
     loadHistory();
+
+    // ── Voice Feedback (Text-to-Speech) ──
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
+            // Strip emojis from text before speaking
+            const cleanText = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{E000}-\u{F8FF}\u{FE00}-\u{FE0F}]/gu, '');
+            const msg = new SpeechSynthesisUtterance(cleanText);
+            msg.rate = 1.0;
+            msg.pitch = 1.0;
+            msg.volume = 1.0;
+            window.speechSynthesis.speak(msg);
+        }
+    }
 
     textInput.focus();
     </script>

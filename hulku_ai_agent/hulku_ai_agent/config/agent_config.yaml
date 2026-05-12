@@ -12,6 +12,9 @@ agent:
     - Joint angles are in degrees. Index 0 = Base, 4 = Wrist.
     - Use -402 for joints that should remain unchanged.
     - Home position is all joints at 0 degrees.
+    - For Voice commands, confirm intents clearly, handling variations and synonyms intelligently.
+    - Be conversational, responding in the same language as the user's prompt (multilingual).
+    - Give succinct, short confirmations like "Moving to home" instead of long paragraphs, so voice output (TTS) sounds natural.
     
   max_steps: 15
   default_provider: "groq"

@@ -209,10 +209,18 @@ HulkuHardwareInterface::export_state_interfaces() {
   }
 
   // GPIO state interfaces (mirrors commands for readback)
+  size_t gpio_idx = 0;
   for (const auto & gpio : info_.gpios) {
     for (size_t i = 0; i < gpio.state_interfaces.size(); i++) {
+      if (gpio.state_interfaces[i].name == "buzzer_trigger") gpio_idx = 0;
+      else if (gpio.state_interfaces[i].name == "torque_enable") gpio_idx = 1;
+      else if (gpio.state_interfaces[i].name == "led_r") gpio_idx = 2;
+      else if (gpio.state_interfaces[i].name == "led_g") gpio_idx = 3;
+      else if (gpio.state_interfaces[i].name == "led_b") gpio_idx = 4;
+      else continue;
+
       state_interfaces.emplace_back(hardware_interface::StateInterface(
-          gpio.name, gpio.state_interfaces[i].name, &gpio_states_[i]));
+          gpio.name, gpio.state_interfaces[i].name, &gpio_states_[gpio_idx]));
     }
   }
 
@@ -233,16 +241,22 @@ HulkuHardwareInterface::export_command_interfaces() {
         &hw_commands_[i]));
   }
 
-  // GPIO command interfaces: buzzer(0), torque(1), rgb_r(2), rgb_g(3), rgb_b(4)
+  // GPIO command interfaces
   size_t gpio_idx = 0;
   for (const auto & gpio : info_.gpios) {
     for (size_t i = 0; i < gpio.command_interfaces.size(); i++) {
+      if (gpio.command_interfaces[i].name == "buzzer_trigger") gpio_idx = 0;
+      else if (gpio.command_interfaces[i].name == "torque_enable") gpio_idx = 1;
+      else if (gpio.command_interfaces[i].name == "led_r") gpio_idx = 2;
+      else if (gpio.command_interfaces[i].name == "led_g") gpio_idx = 3;
+      else if (gpio.command_interfaces[i].name == "led_b") gpio_idx = 4;
+      else continue;
+
       command_interfaces.emplace_back(hardware_interface::CommandInterface(
           gpio.name, gpio.command_interfaces[i].name, &gpio_commands_[gpio_idx]));
       RCLCPP_INFO(rclcpp::get_logger("HulkuHardwareInterface"),
                   "Exported GPIO command: %s/%s (index %zu)",
                   gpio.name.c_str(), gpio.command_interfaces[i].name.c_str(), gpio_idx);
-      gpio_idx++;
     }
   }
 
@@ -520,7 +534,7 @@ HulkuHardwareInterface::write(const rclcpp::Time & /*time*/,
   // Buzzer (MCU register 0x06)
   if (gpio_commands_[0] != gpio_prev_[0]) {
     uint8_t val = static_cast<uint8_t>(gpio_commands_[0]);
-    uint8_t buzzer_msg[4] = {0x55, 0xAA, 0x06, val};
+    uint8_t buzzer_msg[4] = {0x55, 0xAA, 0x03, val};
     for (int i = 0; i < 3; i++) {
       ::write(serial_fd_, buzzer_msg, 4);
       usleep(3000);
@@ -534,7 +548,7 @@ HulkuHardwareInterface::write(const rclcpp::Time & /*time*/,
   // Torque (MCU register 0x1A)
   if (gpio_commands_[1] != gpio_prev_[1]) {
     uint8_t val = (gpio_commands_[1] > 0.5) ? 0x01 : 0x00;
-    uint8_t torque_msg[4] = {0x55, 0xAA, 0x1A, val};
+    uint8_t torque_msg[4] = {0x55, 0xAA, 0x04, val};
     for (int i = 0; i < 3; i++) {
       ::write(serial_fd_, torque_msg, 4);
       usleep(3000);
@@ -552,7 +566,7 @@ HulkuHardwareInterface::write(const rclcpp::Time & /*time*/,
     uint8_t r = static_cast<uint8_t>(gpio_commands_[2]);
     uint8_t g = static_cast<uint8_t>(gpio_commands_[3]);
     uint8_t b = static_cast<uint8_t>(gpio_commands_[4]);
-    uint8_t rgb_msg[6] = {0x55, 0xAA, 0x02, r, g, b};
+    uint8_t rgb_msg[6] = {0x55, 0xAA, 0x05, r, g, b};
     for (int i = 0; i < 3; i++) {
       ::write(serial_fd_, rgb_msg, 6);
       usleep(3000);
