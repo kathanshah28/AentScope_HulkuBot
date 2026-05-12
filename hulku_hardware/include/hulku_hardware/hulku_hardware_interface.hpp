@@ -63,21 +63,12 @@ private:
   std::vector<double> hw_commands_;
   std::vector<double> hw_states_;
 
-  // ===== GPIO Controller (Topic-based) =====
-  // A dedicated node + subscriber listens on /gpio_controller/commands
-  // and sets atomic flags for the write() loop to dispatch.
-  std::shared_ptr<rclcpp::Node> gpio_node_;
-  rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr gpio_sub_;
-  std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> gpio_executor_;
-  std::thread gpio_thread_;
-
-  // GPIO command values (written by subscriber, read by write() loop)
+  // GPIO command values
   // Indexes: 0=buzzer, 1=torque, 2=rgb_r, 3=rgb_g, 4=rgb_b
   static constexpr size_t GPIO_COUNT = 5;
-  std::atomic<double> gpio_commands_[GPIO_COUNT];
+  double gpio_commands_[GPIO_COUNT];
+  double gpio_states_[GPIO_COUNT];
   double gpio_prev_[GPIO_COUNT] = {0.0};
-
-  void gpio_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
 };
 
 } // namespace hulku_hardware

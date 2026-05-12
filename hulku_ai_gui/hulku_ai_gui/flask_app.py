@@ -160,8 +160,8 @@ def voice():
         client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
         transcription = client.audio.transcriptions.create(
             file=("recording.webm", audio_bytes),
-            model="whisper-large-v3",
-            language="en",
+            model="whisper-large-v3"
+            # Removed language="en" to support multi-language automatically as per Whisper default
         )
         text = transcription.text.strip()
         return jsonify({"text": text})
