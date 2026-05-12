@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>franka_ai_node</name>
+  <version>0.0.0</version>
+  <description>TODO: Package description</description>
+  <maintainer email="kathanshah2004@gmail.com">kathan</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- Build system -->
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <!-- Runtime dependencies -->
+  <depend>rclpy</depend>
+  <depend>custom_interfaces</depend>
+  <!-- These are NOT ROS packages, but we declare them -->
+  <exec_depend>python3-flask</exec_depend>
+  <exec_depend>python3-requests</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

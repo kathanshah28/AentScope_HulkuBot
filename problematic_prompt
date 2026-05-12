@@ -1,0 +1,32 @@
+Prompt: -Move the first joint to 90 degrees, then print here the new joint states, then move the first joint to 0 degrees, then print here 'Task is fully done!'
+
+Issue:  Sometimes no actions happen
+
+Prompts: Related to drag mode and buzzer on off
+
+Issue:  Sometimes work sometimes work 
+reason:  it is due to traffic on the serial bus
+solution:  can increase calls of service to make sure port take commands in the high traffic 
+
+
+
+
+
+prompts: - 
+
+enable drag mode
+disable drag mode
+
+enable buzzer
+disable buzzer
+
+move third and fourth joint to 90 wait for 30 seconds then again move it back to original position with each movement completed print current joint values
+
+move third and fourth joint to 90 then move back to 0
+
+move random but valid movements 5 times and after each movement complete print current joint values and a 5 seconds delay
+
+move in total left
+
+move third joint to 90 then enable drag mode then wait for 40 seconds then disable drag mode and again move joint to 0 
+ 

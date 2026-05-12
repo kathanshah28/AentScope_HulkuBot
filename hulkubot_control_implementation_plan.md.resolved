@@ -1,0 +1,62 @@
+# Goal
+
+Create a native C++ `ros2_control` Hardware Interface plugin for the `hulku_bot`. This will replace the Python `hardware_connection.py` bridge. Instead of MoveIt talking to a `FakeSystem` and your python script listening to `/joint_states`, MoveIt will directly stream commands to your physical Arduino via this native C++ plugin. This guarantees hard-realtime execution and perfect synchronization with ROS 2 controllers.
+
+## User Review Required
+
+> [!IMPORTANT]
+> The current `hardware_command_sends` package is an `ament_python` package, which means it cannot compile C++ code. I propose creating a brand new package called `hulku_hardware` (build type `ament_cmake`) to hold the C++ plugin.
+
+## Open Questions
+
+> [!WARNING]
+> 1. **Arduino Protocol:** Your current python script sends plain text like `"MOVE 90 90 90 90 90 90 200\n"`. Does the Arduino parse this string directly, or does it expect binary Hex codes? I will replicate the exact `"MOVE S1 S2 S3 S4 S5 S6 TIME\n"` text formatting in C++ unless you tell me you'd prefer to switch to a smaller, faster binary/hex payload.
+> 2. **Feedback Loop:** Does your Arduino send back joint angles to the computer? If not, the C++ interface will be "open loop" (it will blindly assume the arm reaches the commanded angles). This is perfectly fine for basic functionality.
+
+## Proposed Changes
+
+---
+
+### `hulku_hardware` (New Package)
+
+A new `ament_cmake` package will be created.
+
+#### [NEW] `src/hulku_hardware_interface.cpp`
+The core `ros2_control` plugin overriding `hardware_interface::SystemInterface`.
+- **`on_init()`**: Reads `port` (e.g. `/dev/ttyUSB0`) and `baud_rate` from the URDF parameters.
+- **`on_activate()`**: Opens the serial port using high-speed POSIX C routines (`tcgetattr`, `tcsetattr`, `open`).
+- **`read()`**: Dummy read (copies position commands into position states so MoveIt thinks the robot successfully executed them).
+- **`write()`**: Converts radians to degrees, formats the `MOVE` string, and pushes the payload over the serial bus.
+
+#### [NEW] `include/hulku_hardware/hulku_hardware_interface.hpp`
+Header file declaring the plugin class, the POSIX serial file descriptor, and arrays for storing joint commands and states.
+
+#### [NEW] `hulku_hardware_plugin.xml`
+Registers `hulku_hardware/HulkuHardwareInterface` as a dynamically loadable plugin for the `ros2_control` framework.
+
+#### [NEW] `CMakeLists.txt` & `package.xml`
+Configures the build system to link against `hardware_interface`, `pluginlib`, and `rclcpp`.
+
+---
+
+### `arm_moveit_config`
+
+#### [MODIFY] `config/robot.ros2_control.xacro`
+Replace the fake mock component with the new real hardware plugin:
+```diff
+- <plugin>mock_components/GenericSystem</plugin>
++ <plugin>hulku_hardware/HulkuHardwareInterface</plugin>
++ <param name="port">/dev/ttyUSB0</param>
++ <param name="baud_rate">115200</param>
+```
+
+## Verification Plan
+
+### Automated Tests
+1. Run `colcon build --packages-select hulku_hardware`.
+2. Verify plugin is recognized: `ros2 control list_hardware_interfaces`.
+
+### Manual Verification
+1. Launch the `demo.launch.py`.
+2. MoveIt should boot without the fake system.
+3. Drag the arm in RViz and click "Execute". The C++ hardware interface will trigger and send the string directly to the ESP32.

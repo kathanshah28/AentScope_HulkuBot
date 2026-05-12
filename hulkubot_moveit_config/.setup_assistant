@@ -1,0 +1,25 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: dofbot_urdf
+    relative_path: urdf/dofbot.urdf
+  srdf:
+    relative_path: config/dofbot_urdf.srdf
+  package_settings:
+    author_name: hulku_authors
+    author_email: hulkubot3945@gmail.com
+    generated_timestamp: 1777634558
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity

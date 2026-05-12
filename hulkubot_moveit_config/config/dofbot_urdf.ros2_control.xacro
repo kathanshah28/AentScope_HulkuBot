@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="dofbot_urdf_ros2_control" params="name initial_positions_file">
+        <xacro:property name="initial_positions" value="${xacro.load_yaml(initial_positions_file)['initial_positions']}"/>
+
+        <ros2_control name="${name}" type="system">
+            <hardware>
+                <!-- By default, set up controllers for simulation. This won't work on real hardware -->
+                <plugin>hulku_hardware/HulkuHardwareInterface</plugin>
+                <param name="port">/dev/ttyUSB0</param>
+                <param name="baud_rate">115200</param>
+            </hardware>
+            <joint name="arm1_Joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['arm1_Joint']}</param>
+                </state_interface>
+            </joint>
+            <joint name="arm2_Joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['arm2_Joint']}</param>
+                </state_interface>
+            </joint>
+            <joint name="arm3_Joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['arm3_Joint']}</param>
+                </state_interface>
+            </joint>
+            <joint name="arm4_Joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['arm4_Joint']}</param>
+                </state_interface>
+            </joint>
+            <joint name="arm5_Joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['arm5_Joint']}</param>
+                </state_interface>
+            </joint>
+            <joint name="Rlink1_Joint">
+                <command_interface name="position"/>
+                <state_interface name="position">
+                  <param name="initial_value">${initial_positions['Rlink1_Joint']}</param>
+                </state_interface>
+            </joint>
+
+            <!-- GPIO Controller Interfaces (Buzzer, Torque, RGB) -->
+            <gpio name="gpio_controller">
+                <command_interface name="buzzer"/>
+                <command_interface name="torque"/>
+                <command_interface name="rgb_r"/>
+                <command_interface name="rgb_g"/>
+                <command_interface name="rgb_b"/>
+            </gpio>
+
+        </ros2_control>
+    </xacro:macro>
+</robot>

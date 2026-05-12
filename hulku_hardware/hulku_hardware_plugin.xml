@@ -1,0 +1,9 @@
+<library path="hulku_hardware">
+  <class name="hulku_hardware/HulkuHardwareInterface"
+         type="hulku_hardware::HulkuHardwareInterface"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      A high-speed binary serial hardware interface for the Hulku Bot Arduino/ESP32.
+    </description>
+  </class>
+</library>

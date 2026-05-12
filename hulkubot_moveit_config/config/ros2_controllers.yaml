@@ -1,0 +1,44 @@
+# This config file is used by ros2_control
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz
+
+    arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+
+    gripper_controller:
+      type: position_controllers/GripperActionController
+
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    gpio_controller:
+      type: forward_command_controller/ForwardCommandController
+
+arm_controller:
+  ros__parameters:
+    joints:
+      - arm1_Joint
+      - arm2_Joint
+      - arm3_Joint
+      - arm4_Joint
+      - arm5_Joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+gripper_controller:
+  ros__parameters:
+    joint: Rlink1_Joint
+
+gpio_controller:
+  ros__parameters:
+    joints:
+      - gpio_controller/buzzer
+      - gpio_controller/torque
+      - gpio_controller/rgb_r
+      - gpio_controller/rgb_g
+      - gpio_controller/rgb_b
+    interface_name: ""

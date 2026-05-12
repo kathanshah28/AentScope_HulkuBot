@@ -1,0 +1,162 @@
+# Goal
+
+Create a native C++ `ros2_control` Hardware Interface plugin for the `hulku_bot`, utilizing a high-speed binary (hex) protocol instead of strings, and enabling true closed-loop feedback by reading the servo encoders. It will also support Buzzer and Torque On/Off (Drag & Teach) capabilities.
+
+## User Review Required
+
+> [!IMPORTANT]
+> I have updated the Arduino code to support your request for Torque (Drag & Teach) and Buzzer features. Please review the Hex registers used for reading positions (`0x15`) and torque control (`0x1A`), as these were not in your original snippet. Update those two registers if they are different on your specific DOF board before flashing.
+
+## Proposed Changes
+
+---
+
+### The Binary Protocol (ESP32 <-> PC)
+
+To make communication blazing fast and support all features, we will use a raw byte protocol.
+
+**Write Commands (PC to ESP32):**
+- **MOVE (Cmd `0x01`):** `[0x55, 0xAA, 0x01, timeH, timeL, pos1H, pos1L, ..., pos6H, pos6L]` (17 bytes)
+- **READ (Cmd `0x02`):** `[0x55, 0xAA, 0x02]` (3 bytes)
+- **BUZZER (Cmd `0x03`):** `[0x55, 0xAA, 0x03, state]` (4 bytes, state: 0x00=OFF, 0xFF=ON)
+- **TORQUE (Cmd `0x04`):** `[0x55, 0xAA, 0x04, state]` (4 bytes, state: 0x00=OFF, 0x01=ON)
+
+**Read Response (ESP32 to PC):**
+- **ANGLES:** `[0x55, 0xAA, 0x02, pos1H, pos1L, ..., pos6H, pos6L]` (15 bytes)
+
+---
+
+### 1. Updated Arduino Code
+Here is the updated Arduino code supporting the hex payload, Buzzer, and Torque/Teaching mode.
+
+```cpp
+#include <Wire.h>
+
+#define DOF_BOARD_ADDR 0x15 
+#define BUZZER_REG 0x06     
+#define READ_ANGLES_REG 0x15 // <-- UPDATE THIS if your board uses a different register to read angles
+#define TORQUE_REG 0x1A      // <-- UPDATE THIS if your board uses a different register for torque enable/disable
+
+#define SDA_PIN 21
+#define SCL_PIN 22
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin(SDA_PIN, SCL_PIN); 
+}
+
+void loop() {
+  if (Serial.available() >= 3) {
+    // Check for header 0x55 0xAA
+    if (Serial.read() == 0x55) {
+      if (Serial.read() == 0xAA) {
+        uint8_t cmd = Serial.read();
+
+        // ---------------------------------
+        // COMMAND 1: MOVE
+        // ---------------------------------
+        if (cmd == 0x01) {
+          uint8_t buf[14];
+          Serial.readBytes(buf, 14); // Read time(2) + 6*pos(12)
+          
+          // Send Time Array (using your working hex code 0x1E)
+          Wire.beginTransmission(DOF_BOARD_ADDR);
+          Wire.write(0x1E);
+          Wire.write(buf[0]); // Time High
+          Wire.write(buf[1]); // Time Low
+          Wire.endTransmission();
+
+          // Send Position Array (using your working hex code 0x1D)
+          Wire.beginTransmission(DOF_BOARD_ADDR);
+          Wire.write(0x1D);
+          for(int i=2; i<14; i++) {
+            Wire.write(buf[i]);
+          }
+          Wire.endTransmission();
+        }
+
+        // ---------------------------------
+        // COMMAND 2: READ ANGLES
+        // ---------------------------------
+        else if (cmd == 0x02) {
+          Wire.beginTransmission(DOF_BOARD_ADDR);
+          Wire.write(READ_ANGLES_REG); 
+          Wire.endTransmission();
+          
+          Wire.requestFrom(DOF_BOARD_ADDR, 12);
+          
+          uint8_t resp[15];
+          resp[0] = 0x55;
+          resp[1] = 0xAA;
+          resp[2] = 0x02;
+          
+          int idx = 3;
+          while(Wire.available() && idx < 15) {
+             resp[idx++] = Wire.read();
+          }
+          
+          Serial.write(resp, 15);
+        }
+
+        // ---------------------------------
+        // COMMAND 3: BUZZER
+        // ---------------------------------
+        else if (cmd == 0x03) {
+          uint8_t state;
+          Serial.readBytes(&state, 1);
+          Wire.beginTransmission(DOF_BOARD_ADDR);
+          Wire.write(BUZZER_REG);
+          Wire.write(state); // 0xFF for ON, 0x00 for OFF
+          Wire.endTransmission();
+        }
+
+        // ---------------------------------
+        // COMMAND 4: TORQUE (Drag & Teach)
+        // ---------------------------------
+        else if (cmd == 0x04) {
+          uint8_t state;
+          Serial.readBytes(&state, 1);
+          Wire.beginTransmission(DOF_BOARD_ADDR);
+          Wire.write(TORQUE_REG);
+          Wire.write(state); // 0x00 for OFF (Drag mode), 0x01 for ON (Hold mode)
+          Wire.endTransmission();
+        }
+      }
+    }
+  }
+}
+```
+
+---
+
+### 2. `hulku_hardware` C++ Plugin
+
+#### [NEW] `src/hulku_hardware_interface.cpp`
+The core plugin overriding `hardware_interface::SystemInterface`.
+- **`on_activate()`**: Opens `/dev/ttyUSB0` with termios (raw binary mode, `B115200`).
+- **`read()`**: 
+  1. Sends `[0x55, 0xAA, 0x02]` over serial.
+  2. Waits for and reads the 15-byte response.
+  3. Re-maps the pulse widths (900-3100) back to Radians (-π/2 to π/2).
+  4. Stores them in the `state_interfaces` array so MoveIt knows exactly where the arm is.
+- **`write()`**: 
+  1. Reads the `command_interfaces` array (Radians).
+  2. Re-maps Radians to pulse widths (900-3100) in C++, applying your physical inversion rules.
+  3. Sends `[0x55, 0xAA, 0x01, ...]` to the ESP32.
+
+#### [NEW] `include/hulku_hardware/hulku_hardware_interface.hpp`
+Defines the C++ class, serial file descriptor, and mapping functions.
+
+#### [NEW] `hulku_hardware_plugin.xml` & `CMakeLists.txt`
+Exports the plugin and links `rclcpp` and `hardware_interface`.
+
+---
+
+### 3. `arm_moveit_config`
+
+#### [MODIFY] `config/robot.ros2_control.xacro`
+Replaces the `FakeSystem` with:
+```xml
+<plugin>hulku_hardware/HulkuHardwareInterface</plugin>
+<param name="port">/dev/ttyUSB0</param>
+```

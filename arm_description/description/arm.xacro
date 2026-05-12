@@ -1,0 +1,291 @@
+<?xml version="1.0"?> 
+    <!-- <robot name="robot">  -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:include filename="inertial_macros.xacro"/>
+
+    <material name="white">
+        <color rgba="1 1 1 0.7"/>
+    </material>
+
+    <material name="orange">
+        <color rgba="1 0.5 0 0.7"/>
+    </material>
+
+    <material name="blue">
+        <color rgba="0 0 1 0.7"/>
+    </material>
+
+    <material name="green">
+        <color rgba="0 1 0 0.7"/>
+    </material>
+
+    <material name="black">
+        <color rgba="0 0 0 0.7"/>
+    </material>
+
+    <material name="red">
+        <color rgba="1 0 0 0.7"/>
+    </material>
+
+    <!-- BASE LINK -->
+
+
+    <link name="base_link">
+    </link>
+
+
+    <!-- base footprint -->
+
+    <joint name="base_footprint_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="base_footprint"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+
+    <link name="base_footprint">
+    </link>
+
+
+    <!-- base cylinder -->
+    <joint name="base_cylinder_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="base_cylinder"/>
+        <origin xyz="0 0 0.104" rpy="0 0 0" />
+    </joint>
+
+    <link name="base_cylinder">
+        <visual>
+            <origin xyz="0 0 -0.0655" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="0.040" length="0.077"/>
+            </geometry>
+            <material name="green"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -0.0655" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="0.040" length="0.077"/>
+            </geometry>
+            <material name="green"/>
+        </collision>
+        <xacro:inertial_cylinder mass="0.1" radius="0.040" length="0.077">
+            <origin xyz="0 0 -0.0655" rpy="0 0 0" />
+        </xacro:inertial_cylinder>
+    </link>
+
+
+    <!-- link 1 -->
+
+    <joint name="link_1_joint" type="revolute">
+        <parent link="base_cylinder"/>
+        <child link="link_1"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1"/>
+        <limit lower="-${pi/2}" upper="${pi/2}" effort="100" velocity="1"/>
+    </joint>
+
+    <link name="link_1">
+        <visual>
+            <origin xyz="0 0 -0.0215" rpy="0 0 0" />
+            <geometry>
+                <box size="0.021 0.0415 0.011"/>
+            </geometry>
+            <material name="blue"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -0.0215" rpy="0 0 0" />
+            <geometry>
+                <box size="0.021 0.0415 0.011"/>
+            </geometry>
+            <material name="blue"/>
+        </collision>
+        <xacro:inertial_box mass="0.1" x="0.021" y="0.0415" z="0.011">
+            <origin xyz="0 0 -0.0215" rpy="0 0 0" />
+        </xacro:inertial_box>
+    </link>
+
+
+    <!-- link 2 -->
+
+    <joint name="link_2_joint" type="revolute">
+        <parent link="link_1"/>
+        <child link="link_2"/>
+        <origin xyz="0 0 0" rpy="${pi/2} -${pi/2} 0" />
+        <axis xyz="0 0 1"/>
+        <limit lower="-${pi/2}" upper="${pi/2}" effort="100" velocity="1"/>
+    </joint>
+
+    <link name="link_2">
+        <visual>
+            <origin xyz="0.02875 0 0" rpy="${pi/2} 0 -${pi/2}" />
+            <geometry>
+                <box size="0.021 0.0415 0.0785"/>
+            </geometry>
+            <material name="blue"/>
+        </visual>
+        <collision>
+            <origin xyz="0.02875 0 0" rpy="${pi/2} 0 -${pi/2}" />
+            <geometry>
+                <box size="0.021 0.0415 0.0785"/>
+            </geometry>
+            <material name="blue"/>
+        </collision>
+        <xacro:inertial_box mass="0.1" x="0.021" y="0.0415" z="0.0785">
+            <origin xyz="0.02875 0 0" rpy="${pi/2} 0 -${pi/2}" />
+        </xacro:inertial_box>
+    </link>
+
+    <!-- link 3 -->
+
+    <joint name="link_3_joint" type="revolute">
+        <parent link="link_2"/>
+        <child link="link_3"/>
+        <origin xyz="0.084 0 0." rpy="0 0 0" />
+        <axis xyz="0 0 1"/>
+        <limit lower="-${pi/2}" upper="${pi/2}" effort="100" velocity="1"/>
+    </joint>
+
+    <link name="link_3">
+        <visual>
+            <origin xyz="0.02775 0 0" rpy="${pi/2} 0 -${pi/2}" />
+            <geometry>
+                <box size="0.021 0.0415 0.0765"/>
+            </geometry>
+            <material name="blue"/>
+        </visual>
+        <collision>
+            <origin xyz="0.02775 0 0" rpy="${pi/2} 0 -${pi/2}" />
+            <geometry>
+                <box size="0.021 0.0415 0.0765"/>
+            </geometry>
+            <material name="blue"/>
+        </collision>
+        <xacro:inertial_box mass="0.1" x="0.021" y="0.0415" z="0.0765">
+            <origin xyz="0.02775 0 0" rpy="${pi/2} 0 -${pi/2}" />
+        </xacro:inertial_box>
+    </link>
+
+    <!-- link 4 -->
+
+    <joint name="link_4_joint" type="revolute">
+        <parent link="link_3"/>
+        <child link="link_4"/>
+        <origin xyz="0.082 0 0" rpy="0 0 0" />
+        <axis xyz="0 0 1"/>
+        <limit lower="-${pi/2}" upper="${pi/2}" effort="100" velocity="1"/>
+    </joint>
+
+    <link name="link_4">
+        <visual>
+            <origin xyz="0.03175 0 0" rpy="${pi/2} 0 -${pi/2}" />
+            <geometry>
+                <box size="0.021 0.0415 0.0845"/>
+            </geometry>
+            <material name="blue"/>
+        </visual>
+        <collision>
+            <origin xyz="0.03175 0 0" rpy="${pi/2} 0 -${pi/2}" />
+            <geometry>
+                <box size="0.021 0.0415 0.0845"/>
+            </geometry>
+            <material name="blue"/>
+        </collision>
+        <xacro:inertial_box mass="0.1" x="0.021" y="0.0415" z="0.0845">
+            <origin xyz="0.03175 0 0" rpy="${pi/2} 0 -${pi/2}" />
+        </xacro:inertial_box>
+    </link>
+
+    <!-- EEpin -->
+
+    <joint name="ee_pin_joint" type="fixed">
+        <parent link="link_4"/>
+        <child link="ee_pin"/>
+        <!-- <origin xyz="-0.01 0.070 0.012" rpy="-${pi/2} 0 0" /> -->
+        <origin xyz="0.086 0.010 -0.012" rpy="-${pi/2}  0 -${pi/2}" />
+
+    </joint>
+
+    <link name="ee_pin">
+        <visual>
+            <origin xyz="0 0 -0.006" rpy="0 0 0" />
+            <geometry>
+                <box size="0.001 0.001 0.012"/>
+            </geometry>
+            <material name="white"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -0.006" rpy="0 0 0" />
+            <geometry>
+                <box size="0.001 0.001 0.012"/>
+            </geometry>
+            <material name="white"/>
+        </collision>
+        <xacro:inertial_box mass="0.1" x="0.001" y="0.001" z="0.012">
+            <origin xyz="0 0 -0.006" rpy="0 0 0" />
+        </xacro:inertial_box>
+    </link>
+
+
+    <!-- left-finger -->
+
+    <!-- <joint name="left_finger_joint" type="prismatic">
+        <parent link="link_4"/>
+        <child link="left_finger"/>
+        <origin xyz="0 0 0.091" rpy="0 0 0" />
+        <axis xyz="0 1 0"/>
+        <limit lower="0.006" upper="0.025" effort="100" velocity="1"/>
+    </joint>
+
+    <link name="left_finger">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="0.022 0.011 0.040"/>
+            </geometry>
+            <material name="blue"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="0.022 0.011 0.040"/>
+            </geometry>
+            <material name="blue"/>
+        </collision>
+        <xacro:inertial_box mass="0.1" x="0.022" y="0.011" z="0.040">
+            <origin xyz="0 0 0" rpy="0 0 0" />
+        </xacro:inertial_box>
+    </link> -->
+
+    <!-- right-finger -->
+
+    <!-- <joint name="right_finger_joint" type="prismatic">
+        <parent link="link_4"/>
+        <child link="right_finger"/>
+        <origin xyz="0 0 0.091" rpy="0 0 0" />
+        <axis xyz="0 1 0"/>
+        <mimic joint="left_finger_joint" multiplier="-1.0" offset="0" />
+        <limit lower="-0.025" upper="-0.006" effort="100" velocity="1"/>
+    </joint>
+
+    <link name="right_finger">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="0.022 0.011 0.040"/>
+            </geometry>
+            <material name="blue"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size="0.022 0.011 0.040"/>
+            </geometry>
+            <material name="blue"/>
+        </collision>
+        <xacro:inertial_box mass="0.1" x="0.022" y="0.011" z="0.040">
+            <origin xyz="0 0 0" rpy="0 0 0" />
+        </xacro:inertial_box>
+    </link> -->
+
+</robot>

@@ -1,0 +1,31 @@
+agent:
+  system_prompt: |
+    You are HulkuBot, a helpful 5-DOF robot arm assistant.
+    You control a physical Yahboom DOF robot arm using the tools provided.
+    
+    Rules:
+    - Always use tools to perform actions. Never make up results.
+    - If the user asks about the robot's position, use get_joint_states first.
+    - If the user asks to move, use move_joints with angles in degrees.
+    - You can chain multiple tools in sequence for complex tasks.
+    - After executing tools, summarize what you did clearly.
+    - Joint angles are in degrees. Index 0 = Base, 4 = Wrist.
+    - Use -402 for joints that should remain unchanged.
+    - Home position is all joints at 0 degrees.
+    
+  max_steps: 15
+  default_provider: "groq"
+  default_model: "qwen/qwen3-32b"
+
+robot:
+  arm_group: "arm"
+  gripper_group: "gripper"
+  joint_names:
+    - arm1_Joint
+    - arm2_Joint
+    - arm3_Joint
+    - arm4_Joint
+    - arm5_Joint
+  gripper_joint: "Rlink1_Joint"
+  dof: 5
+  home_position: [0, 0, 0, 0, 0]
