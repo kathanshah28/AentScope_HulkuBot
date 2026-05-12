@@ -208,22 +208,6 @@ HulkuHardwareInterface::export_state_interfaces() {
         &hw_states_[i]));
   }
 
-  // GPIO state interfaces (mirrors commands for readback)
-  size_t gpio_idx = 0;
-  for (const auto & gpio : info_.gpios) {
-    for (size_t i = 0; i < gpio.state_interfaces.size(); i++) {
-      if (gpio.state_interfaces[i].name == "buzzer_trigger") gpio_idx = 0;
-      else if (gpio.state_interfaces[i].name == "torque_enable") gpio_idx = 1;
-      else if (gpio.state_interfaces[i].name == "led_r") gpio_idx = 2;
-      else if (gpio.state_interfaces[i].name == "led_g") gpio_idx = 3;
-      else if (gpio.state_interfaces[i].name == "led_b") gpio_idx = 4;
-      else continue;
-
-      state_interfaces.emplace_back(hardware_interface::StateInterface(
-          gpio.name, gpio.state_interfaces[i].name, &gpio_states_[gpio_idx]));
-    }
-  }
-
   return state_interfaces;
 }
 
