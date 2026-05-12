@@ -497,16 +497,33 @@ def main():
         if not ros_connected:
             st.error("System disconnected. Cannot send voice commands.")
         else:
-            with st.spinner("🎙️ Transcribing voice via Whisper..."):
+            with st.spinner("🎙️ Transcribing voice via Google SpeechRecognition..."):
                 try:
+                    import speech_recognition as sr
+                    import tempfile
                     import os
-                    from groq import Groq
-                    client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
-                    transcription = client.audio.transcriptions.create(
-                        file=("command.wav", audio_bytes),
-                        model="whisper-large-v3",
-                    )
-                    prompt_text = transcription.text.strip()
+                    from pydub import AudioSegment
+
+                    # Save to temp file to convert to wav
+                    fd, temp_path = tempfile.mkstemp(suffix=".wav") # Streamlit audio bytes might be wav natively depending on how it's captured
+                    with os.fdopen(fd, 'wb') as f:
+                        f.write(audio_bytes)
+
+                    # It's safer to ensure it is in wav format using pydub
+                    # Since we don't know the exact format, we just let pydub figure it out
+                    wav_path = temp_path + "_converted.wav"
+                    audio = AudioSegment.from_file(temp_path)
+                    audio.export(wav_path, format="wav")
+
+                    recognizer = sr.Recognizer()
+                    with sr.AudioFile(wav_path) as source:
+                        audio_data = recognizer.record(source)
+                        prompt_text = recognizer.recognize_google(audio_data).strip()
+
+                    # cleanup
+                    os.remove(temp_path)
+                    os.remove(wav_path)
+
                 except Exception as e:
                     st.error(f"Voice transcription failed: {e}")
                     prompt_text = None

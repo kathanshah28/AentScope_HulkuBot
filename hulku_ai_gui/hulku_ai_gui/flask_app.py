@@ -148,23 +148,43 @@ def chat():
 
 @app.route('/api/voice', methods=['POST'])
 def voice():
-    """Receive audio blob, transcribe via Groq Whisper, return text."""
+    """Receive audio blob, transcribe via SpeechRecognition using Google Speech API, return text."""
     if 'audio' not in request.files:
         return jsonify({"error": "No audio file"}), 400
 
     audio_file = request.files['audio']
-    audio_bytes = audio_file.read()
+
+    import speech_recognition as sr
+    import tempfile
+    import os
+    import io
 
     try:
-        from groq import Groq
-        client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
-        transcription = client.audio.transcriptions.create(
-            file=("recording.webm", audio_bytes),
-            model="whisper-large-v3"
-            # Removed language="en" to support multi-language automatically as per Whisper default
-        )
-        text = transcription.text.strip()
-        return jsonify({"text": text})
+        # Since the frontend usually sends webm or a format SR doesn't directly support,
+        # we might need to use pydub to convert it to a WAV file first.
+        # But SpeechRecognition works best with WAV
+        from pydub import AudioSegment
+
+        # Save uploaded file to a temporary file
+        fd, temp_path = tempfile.mkstemp(suffix=".webm")
+        with os.fdopen(fd, 'wb') as f:
+            f.write(audio_file.read())
+
+        # Convert to wav
+        wav_path = temp_path + ".wav"
+        audio = AudioSegment.from_file(temp_path)
+        audio.export(wav_path, format="wav")
+
+        recognizer = sr.Recognizer()
+        with sr.AudioFile(wav_path) as source:
+            audio_data = recognizer.record(source)
+            text = recognizer.recognize_google(audio_data)
+
+        # Cleanup
+        os.remove(temp_path)
+        os.remove(wav_path)
+
+        return jsonify({"text": text.strip()})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

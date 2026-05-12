@@ -54,11 +54,6 @@
                 <command_interface name="led_r"/>
                 <command_interface name="led_g"/>
                 <command_interface name="led_b"/>
-                <state_interface name="buzzer_trigger"/>
-                <state_interface name="torque_enable"/>
-                <state_interface name="led_r"/>
-                <state_interface name="led_g"/>
-                <state_interface name="led_b"/>
             </gpio>
 
         </ros2_control>
