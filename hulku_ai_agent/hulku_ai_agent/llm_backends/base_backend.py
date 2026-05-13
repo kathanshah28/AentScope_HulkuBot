@@ -18,6 +18,7 @@ class LLMResponse:
     """Standard response from any LLM backend."""
     text: Optional[str] = None
     tool_calls: List[ToolCall] = field(default_factory=list)
+    reasoning_details: Any = None
 
     def has_tool_calls(self) -> bool:
         return len(self.tool_calls) > 0

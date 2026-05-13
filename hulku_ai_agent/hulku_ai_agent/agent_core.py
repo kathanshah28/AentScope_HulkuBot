@@ -55,6 +55,23 @@ class AgentCore:
             response: LLMResponse = self._llm.chat(messages, tools=tool_definitions)
 
             if response.has_tool_calls():
+                # Add the assistant's tool call as a single message
+                assistant_msg = {
+                    "role": "assistant",
+                    "content": response.text or "",
+                    "tool_calls": [
+                        {
+                            "id": tc.id,
+                            "type": "function",
+                            "function": {
+                                "name": tc.name,
+                                "arguments": json.dumps(tc.args)
+                            }
+                        } for tc in response.tool_calls
+                    ]
+                }
+                messages.append(assistant_msg)
+
                 for tc in response.tool_calls:
                     logger.info(f"  🔧 Calling tool: {tc.name}({tc.args})")
                     if self._feedback_cb:
@@ -64,17 +81,10 @@ class AgentCore:
 
                     logger.info(f"  📋 Result: {result}")
                     if self._feedback_cb:
-                        # Limit result string length in UI so it doesn't flood the chat bubble
                         res_str = str(result)
                         if len(res_str) > 200:
                             res_str = res_str[:197] + "..."
                         self._feedback_cb(f"📋 Result: {res_str}")
-
-                    # Add the assistant's tool call as a message
-                    messages.append({
-                        "role": "assistant",
-                        "content": f"I'll call the {tc.name} tool.",
-                    })
 
                     # Add the tool result so the LLM can see what happened
                     messages.append({

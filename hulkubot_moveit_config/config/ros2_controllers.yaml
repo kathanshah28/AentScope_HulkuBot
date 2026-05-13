@@ -35,10 +35,10 @@ gripper_controller:
 
 gpio_controller:
   ros__parameters:
-    joint: aux_hardware
-    interface_names:
+    joints:
+      - buzzer_trigger
+      - torque_enable
       - led_r
       - led_g
       - led_b
-      - torque_enable
-      - buzzer_trigger
+    interface_name: command

@@ -16,9 +16,9 @@ agent:
     - Be conversational, responding in the same language as the user's prompt (multilingual).
     - Give succinct, short confirmations like "Moving to home" instead of long paragraphs, so voice output (TTS) sounds natural.
     
-  max_steps: 15
-  default_provider: "groq"
-  default_model: "qwen/qwen3-32b"
+  max_steps: 100
+  default_provider: "openrouter"
+  default_model: "baidu/cobuddy:free"
 
 robot:
   arm_group: "arm"

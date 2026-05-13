@@ -48,12 +48,20 @@
             </joint>
 
             <!-- GPIO Controller Interfaces (Buzzer, Torque, RGB) -->
-            <gpio name="aux_hardware">
-                <command_interface name="buzzer_trigger"/>
-                <command_interface name="torque_enable"/>
-                <command_interface name="led_r"/>
-                <command_interface name="led_g"/>
-                <command_interface name="led_b"/>
+            <gpio name="buzzer_trigger">
+                <command_interface name="command"/>
+            </gpio>
+            <gpio name="torque_enable">
+                <command_interface name="command"/>
+            </gpio>
+            <gpio name="led_r">
+                <command_interface name="command"/>
+            </gpio>
+            <gpio name="led_g">
+                <command_interface name="command"/>
+            </gpio>
+            <gpio name="led_b">
+                <command_interface name="command"/>
             </gpio>
 
         </ros2_control>

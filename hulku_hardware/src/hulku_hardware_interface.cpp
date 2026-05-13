@@ -226,21 +226,23 @@ HulkuHardwareInterface::export_command_interfaces() {
   }
 
   // GPIO command interfaces
-  size_t gpio_idx = 0;
   for (const auto & gpio : info_.gpios) {
-    for (size_t i = 0; i < gpio.command_interfaces.size(); i++) {
-      if (gpio.command_interfaces[i].name == "buzzer_trigger") gpio_idx = 0;
-      else if (gpio.command_interfaces[i].name == "torque_enable") gpio_idx = 1;
-      else if (gpio.command_interfaces[i].name == "led_r") gpio_idx = 2;
-      else if (gpio.command_interfaces[i].name == "led_g") gpio_idx = 3;
-      else if (gpio.command_interfaces[i].name == "led_b") gpio_idx = 4;
-      else continue;
+    size_t gpio_idx = 0;
+    if (gpio.name == "buzzer_trigger") gpio_idx = 0;
+    else if (gpio.name == "torque_enable") gpio_idx = 1;
+    else if (gpio.name == "led_r") gpio_idx = 2;
+    else if (gpio.name == "led_g") gpio_idx = 3;
+    else if (gpio.name == "led_b") gpio_idx = 4;
+    else continue;
 
-      command_interfaces.emplace_back(hardware_interface::CommandInterface(
-          gpio.name, gpio.command_interfaces[i].name, &gpio_commands_[gpio_idx]));
-      RCLCPP_INFO(rclcpp::get_logger("HulkuHardwareInterface"),
-                  "Exported GPIO command: %s/%s (index %zu)",
-                  gpio.name.c_str(), gpio.command_interfaces[i].name.c_str(), gpio_idx);
+    for (size_t i = 0; i < gpio.command_interfaces.size(); i++) {
+      if (gpio.command_interfaces[i].name == "command") {
+        command_interfaces.emplace_back(hardware_interface::CommandInterface(
+            gpio.name, "command", &gpio_commands_[gpio_idx]));
+        RCLCPP_INFO(rclcpp::get_logger("HulkuHardwareInterface"),
+                    "Exported GPIO command: %s/command (index %zu)",
+                    gpio.name.c_str(), gpio_idx);
+      }
     }
   }
 

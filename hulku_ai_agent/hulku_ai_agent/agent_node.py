@@ -180,8 +180,14 @@ class HulkuAgentNode(Node):
             self.get_logger().info(f"Using Ollama Cloud backend: {model}")
             return OllamaCloudBackend(model_name=model, api_key=key)
 
+        elif provider == "openrouter":
+            from hulku_ai_agent.llm_backends.openrouter_backend import OpenRouterBackend
+            key = api_key or os.environ.get("OPEN_ROUTER_KEY", "")
+            self.get_logger().info(f"Using OpenRouter backend: {model}")
+            return OpenRouterBackend(model_name=model, api_key=key)
+
         else:
-            raise ValueError(f"Unknown LLM provider: '{provider}'. Use 'gemini', 'groq', 'ollama', or 'ollama_cloud'.")
+            raise ValueError(f"Unknown LLM provider: '{provider}'. Use 'gemini', 'groq', 'ollama', 'ollama_cloud', or 'openrouter'.")
 
     def _joint_state_cb(self, msg):
         self.current_joint_state = msg

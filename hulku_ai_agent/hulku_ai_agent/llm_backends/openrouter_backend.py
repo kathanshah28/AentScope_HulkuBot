@@ -1,40 +1,43 @@
-"""Groq LLM backend with tool calling support."""
+"""OpenRouter LLM backend with tool calling and reasoning support."""
 
 import os
 import json
-from typing import List
 
 from hulku_ai_agent.llm_backends.base_backend import BaseLLMBackend, LLMResponse, ToolCall
 
 
-class GroqBackend(BaseLLMBackend):
+class OpenRouterBackend(BaseLLMBackend):
     """
-    Groq backend using the Groq Python SDK with tool calling.
-    Fast inference with models like llama-3.1-70b-versatile.
+    OpenRouter backend using the OpenAI Python SDK.
+    Supports reasoning models via OpenRouter's extra_body parameters.
     
     API key resolution order:
-        1. GROQ_API_KEY environment variable
+        1. OPENROUTER_API_KEY environment variable
         2. Explicitly passed api_key parameter
     """
 
-    def __init__(self, model_name: str = "llama-3.1-70b-versatile", api_key: str = None):
+    def __init__(self, model_name: str = "openai/gpt-oss-120b:free", api_key: str = None):
         self._model_name = model_name
-        self._api_key = api_key or os.environ.get("GROQ_API_KEY", "")
+        self._api_key = api_key or os.environ.get("OPENROUTER_API_KEY", "")
 
         if not self._api_key:
             raise ValueError(
-                "Groq API key not found. Set GROQ_API_KEY env var "
+                "OpenRouter API key not found. Set OPENROUTER_API_KEY env var "
                 "or pass api_key parameter."
             )
 
-        from groq import Groq
-        self._client = Groq(api_key=self._api_key)
+        # pyrefly: ignore [missing-import]
+        from openai import OpenAI
+        self._client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=self._api_key,
+        )
 
     def _convert_tools(self, tools: list) -> list:
-        """Convert our tool definitions to OpenAI-compatible format used by Groq."""
-        groq_tools = []
+        """Convert our tool definitions to OpenAI-compatible format."""
+        openai_tools = []
         for tool in tools:
-            groq_tools.append({
+            openai_tools.append({
                 "type": "function",
                 "function": {
                     "name": tool["name"],
@@ -42,15 +45,15 @@ class GroqBackend(BaseLLMBackend):
                     "parameters": tool["parameters"],
                 }
             })
-        return groq_tools
+        return openai_tools
 
     def chat(self, messages: list, tools: list) -> LLMResponse:
-        # Convert messages to Groq/OpenAI format
-        groq_messages = []
+        # Convert messages to OpenAI/OpenRouter format
+        openai_messages = []
         for msg in messages:
             role = msg["role"]
             if role == "tool_result":
-                groq_messages.append({
+                openai_messages.append({
                     "role": "tool",
                     "content": msg["content"],
                     "tool_call_id": msg.get("tool_call_id", ""),
@@ -63,24 +66,28 @@ class GroqBackend(BaseLLMBackend):
                 }
                 if "tool_calls" in msg:
                     out_msg["tool_calls"] = msg["tool_calls"]
-                groq_messages.append(out_msg)
+                
+                # Preserve reasoning_details if present
+                if "reasoning_details" in msg:
+                    out_msg["reasoning_details"] = msg["reasoning_details"]
+                    
+                openai_messages.append(out_msg)
 
         kwargs = {
             "model": self._model_name,
-            "messages": groq_messages,
+            "messages": openai_messages,
             "temperature": 0.1,
+            "extra_body": {"reasoning": {"enabled": True}}
         }
 
         if tools:
             kwargs["tools"] = self._convert_tools(tools)
             kwargs["tool_choice"] = "auto"
-            # NOTE: Uncheck if needed for parallel tool calls disable if it cause problem with tool calls
-            # kwargs["parallel_tool_calls"] = False
 
         try:
             response = self._client.chat.completions.create(**kwargs)
         except Exception as e:
-            return LLMResponse(text=f"Error calling Groq: {str(e)}")
+            return LLMResponse(text=f"Error calling OpenRouter: {str(e)}")
 
         choice = response.choices[0]
         message = choice.message
@@ -98,4 +105,5 @@ class GroqBackend(BaseLLMBackend):
         return LLMResponse(
             text=message.content if message.content else None,
             tool_calls=tool_calls,
+            reasoning_details=getattr(message, "reasoning_details", None)
         )
