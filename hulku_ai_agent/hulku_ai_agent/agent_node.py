@@ -21,6 +21,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64MultiArray
 
 from hulku_ai_agent.agent_core import AgentCore
+from hulku_ai_agent.memory.memory_manager import MemoryManager
 from hulku_ai_agent.tools import (
     ToolRegistry,
     MoveJointsTool, MoveGripperTool, BuzzerTool,
@@ -134,12 +135,18 @@ class HulkuAgentNode(Node):
         self._llm_backend = self._create_backend(provider, model, api_key)
 
         # ==============================
+        # MEMORY MANAGER
+        # ==============================
+        self._memory_manager = MemoryManager(config=self._config)
+
+        # ==============================
         # AGENT CORE
         # ==============================
         self._agent = AgentCore(
             llm_backend=self._llm_backend,
             tool_registry=self._registry,
             system_prompt=self._system_prompt,
+            memory_manager=self._memory_manager,
             max_steps=self._max_steps,
             # We don't pass feedback_cb here, we will inject it per-request
         )
@@ -224,7 +231,12 @@ class HulkuAgentNode(Node):
             self._agent._feedback_cb = live_feedback_cb
 
             # Run the ReAct agent loop
-            result_text = self._agent.run(user_message)
+            result_text = self._agent.run(
+                user_message,
+                current_joint_state=self.current_joint_state,
+                gpio_state=self._gpio_state,
+                joint_names=self._joint_names
+            )
 
             # Clean up callback
             self._agent._feedback_cb = None
