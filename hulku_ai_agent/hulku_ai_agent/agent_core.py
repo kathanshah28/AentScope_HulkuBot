@@ -39,6 +39,7 @@ class AgentCore:
         self._memory_manager = memory_manager
         self._max_steps = max_steps
         self._feedback_cb = feedback_cb
+        self._conversation_history = []
 
     def run(
         self,
