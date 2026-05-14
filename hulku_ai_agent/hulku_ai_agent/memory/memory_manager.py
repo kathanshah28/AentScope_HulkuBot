@@ -26,9 +26,21 @@ class MemoryManager:
         self._db_path = db_path
         self._collection = None
         self._db_client = None
+        self._conversation_history: List[Dict[str, str]] = []
 
         # Try to initialize Episodic Memory (ChromaDB)
         self._init_episodic_memory()
+
+    def get_conversation_history(self) -> List[Dict[str, str]]:
+        """Returns the short-term conversation history."""
+        return self._conversation_history
+
+    def add_to_conversation_history(self, role: str, content: str) -> None:
+        """Adds a message to the short-term conversation history."""
+        self._conversation_history.append({"role": role, "content": content})
+        # Keep only the last 10 messages (5 pairs)
+        if len(self._conversation_history) > 10:
+            self._conversation_history = self._conversation_history[-10:]
 
     def _init_episodic_memory(self) -> None:
         if not CHROMA_AVAILABLE:
