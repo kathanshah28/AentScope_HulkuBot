@@ -70,14 +70,17 @@ class AgentCore:
         if episodic_mem:
             user_content = f"{episodic_mem}\n\nUser Command: {user_message}"
 
+        # Gather short-term conversation history
+        conv_history = self._memory_manager.get_conversation_history()
+
         messages = [
             {"role": "system", "content": augmented_system_prompt},
         ]
 
-        # Append short-term conversation history
-        messages.extend(self._conversation_history)
+        # Add conversation history
+        messages.extend(conv_history)
 
-        # Append current user command
+        # Add the current user message
         messages.append({"role": "user", "content": user_content})
 
         tool_definitions = self._registry.get_tool_definitions()
@@ -138,15 +141,13 @@ class AgentCore:
                 if executed_tools:
                     self._memory_manager.save_episodic_memory(user_message, executed_tools)
 
-                # Update conversation history
-                self._conversation_history.append({"role": "user", "content": user_message})
-                self._conversation_history.append({"role": "assistant", "content": final_text})
-
-                # Keep history short (e.g., last 10 messages)
-                if len(self._conversation_history) > 10:
-                    self._conversation_history = self._conversation_history[-10:]
+                # Save to short-term memory
+                self._memory_manager.add_to_conversation_history("user", user_message)
+                self._memory_manager.add_to_conversation_history("assistant", final_text)
 
                 return final_text
 
         # Max steps reached
+        self._memory_manager.add_to_conversation_history("user", user_message)
+        self._memory_manager.add_to_conversation_history("assistant", "I completed the available steps. Some actions may have been executed successfully.")
         return "I completed the available steps. Some actions may have been executed successfully."
