@@ -39,6 +39,7 @@ class AgentCore:
         self._memory_manager = memory_manager
         self._max_steps = max_steps
         self._feedback_cb = feedback_cb
+        self._conversation_history = []
 
     def run(
         self,
@@ -71,8 +72,13 @@ class AgentCore:
 
         messages = [
             {"role": "system", "content": augmented_system_prompt},
-            {"role": "user", "content": user_content},
         ]
+
+        # Append short-term conversation history
+        messages.extend(self._conversation_history)
+
+        # Append current user command
+        messages.append({"role": "user", "content": user_content})
 
         tool_definitions = self._registry.get_tool_definitions()
 
@@ -131,6 +137,14 @@ class AgentCore:
                 # Save to episodic memory if we successfully executed tools
                 if executed_tools:
                     self._memory_manager.save_episodic_memory(user_message, executed_tools)
+
+                # Update conversation history
+                self._conversation_history.append({"role": "user", "content": user_message})
+                self._conversation_history.append({"role": "assistant", "content": final_text})
+
+                # Keep history short (e.g., last 10 messages)
+                if len(self._conversation_history) > 10:
+                    self._conversation_history = self._conversation_history[-10:]
 
                 return final_text
 
