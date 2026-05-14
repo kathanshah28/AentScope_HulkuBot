@@ -1,13 +1,6 @@
-Prompt: -Move the first joint to 90 degrees, then print here the new joint states, then move the first joint to 0 degrees, then print here 'Task is fully done!'
+prompt: - turn on drag mode display current joint values for 40 seconds live and then disable drag mode
 
-Issue:  Sometimes no actions happen
-
-Prompts: Related to drag mode and buzzer on off
-
-Issue:  Sometimes work sometimes work 
-reason:  it is due to traffic on the serial bus
-solution:  can increase calls of service to make sure port take commands in the high traffic 
-
+reason: - no capabality to run more than one tool at the same time
 
 
 
@@ -29,4 +22,6 @@ move random but valid movements 5 times and after each movement complete print c
 move in total left
 
 move third joint to 90 then enable drag mode then wait for 40 seconds then disable drag mode and again move joint to 0 
+
+Move the first joint to 90 degrees, then print here the new joint states, then move the first joint to 0 degrees, then print here 'Task is fully done!'
  

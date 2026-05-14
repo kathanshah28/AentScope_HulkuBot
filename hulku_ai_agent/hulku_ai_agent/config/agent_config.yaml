@@ -17,8 +17,8 @@ agent:
     - Give succinct, short confirmations like "Moving to home" instead of long paragraphs, so voice output (TTS) sounds natural.
     
   max_steps: 100
-  default_provider: "openrouter"
-  default_model: "baidu/cobuddy:free"
+  default_provider: "mistral"
+  default_model: "devstral-latest"
 
 robot:
   arm_group: "arm"

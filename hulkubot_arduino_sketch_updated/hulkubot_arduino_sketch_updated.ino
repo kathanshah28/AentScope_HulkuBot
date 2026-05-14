@@ -110,7 +110,7 @@ void loop() {
         // COMMAND 3: BUZZER
         // ---------------------------------
         else if (cmd == 0x03) {
-          delay(10);
+          delay(5);
           uint8_t state;
           Serial.readBytes(&state, 1);
           Wire.beginTransmission(DOF_BOARD_ADDR);
@@ -123,7 +123,7 @@ void loop() {
         // COMMAND 4: TORQUE (Drag & Teach)
         // ---------------------------------
         else if (cmd == 0x04) {
-          delay(30);
+          delay(29);
           uint8_t state;
           Serial.readBytes(&state, 1);
           Wire.beginTransmission(DOF_BOARD_ADDR);
@@ -137,7 +137,7 @@ void loop() {
         // COMMAND 5: RGB LED
         // ---------------------------------
         else if (cmd == 0x05) {
-          delay(5);
+          delay(2);
           uint8_t rgb[3];
           Serial.readBytes(rgb, 3);
           Wire.beginTransmission(DOF_BOARD_ADDR);

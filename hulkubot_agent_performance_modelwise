@@ -1,0 +1,54 @@
+Performace models to used for ai agent of robot: - 
+
+
+
+1.) 
+	provider: - groq
+	model: - qwen/qwen3-32b
+	limit: - 60 per minute
+	parameters: - 32B
+	cons: - struggles when given high context or long prompt(task) (hallucinate of done doing tasks)
+	pros: - fast inference, reliable and well human langugae(task) understanding
+	
+	
+2.) 
+	provider: - openrouter
+	model: - baidu/cobuddy:free
+	limit: - 20 per minute
+	parameters: - 238B
+	cons: - very slow inference
+	pros: - long context and task capability
+	
+3.) 
+	provider: - nvidia
+	model: - qwen/qwen3-coder-480b-a35b-instruct
+	limit: - some consecutive limits
+	parameters: - 480B combine 35B active
+	cons: - slow inference and some what less human understanding
+	pros: - long context and task capability	
+	
+4.)
+	provider: - nvidia
+	model: - stepfun-ai/step-3.5-flash
+	limit: - some consecutive limits 
+	parameters: - 200B
+	cons: - slow inference 
+	pros: - long context and task capability
+	
+5.)
+	provider: - nvidia
+	model: - mistralai/mistral-large-3-675b-instruct-2512
+	limit: - some consecutive limits 
+	parameters: - 675B
+	cons: - medium level inference but output paramaters are more so less calls needed
+	pros: - long context and task capability and good understanding
+	
+6.)
+	provider: - mistrak
+	model: - devstral-latest
+	limit: - some consecutive limits 
+	parameters: - unknown
+	cons: - 
+	pros: - fast inference, large output parameters, good api limits, good human level task understanding etc.,
+	
+
