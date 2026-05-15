@@ -148,45 +148,114 @@ def chat():
 
 @app.route('/api/voice', methods=['POST'])
 def voice():
-    """Receive audio blob, transcribe via SpeechRecognition using Google Speech API, return text."""
+    """Receive audio blob, transcribe via Groq/OpenAI Whisper (fallback to Google), return text."""
     if 'audio' not in request.files:
         return jsonify({"error": "No audio file"}), 400
 
     audio_file = request.files['audio']
 
-    import speech_recognition as sr
     import tempfile
     import os
-    import io
 
+    # Determine extension
+    ext = os.path.splitext(audio_file.filename)[1]
+    if not ext:
+        ext = ".webm"
+
+    fd, temp_path = tempfile.mkstemp(suffix=ext)
     try:
-        # Since the frontend usually sends webm or a format SR doesn't directly support,
-        # we might need to use pydub to convert it to a WAV file first.
-        # But SpeechRecognition works best with WAV
-        from pydub import AudioSegment
-
-        # Save uploaded file to a temporary file
-        fd, temp_path = tempfile.mkstemp(suffix=".webm")
         with os.fdopen(fd, 'wb') as f:
             f.write(audio_file.read())
 
-        # Convert to wav
-        wav_path = temp_path + ".wav"
-        audio = AudioSegment.from_file(temp_path)
-        audio.export(wav_path, format="wav")
+        text = ""
 
-        recognizer = sr.Recognizer()
-        with sr.AudioFile(wav_path) as source:
-            audio_data = recognizer.record(source)
-            text = recognizer.recognize_google(audio_data)
+        # 1. Try Deepgram Nova-2 (Current Industry Standard for fast, high-accuracy STT)
+        if os.environ.get("DEEPGRAM_API_KEY"):
+            try:
+                import requests
+                # Nova-2 is Deepgram's most accurate model
+                url = "https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true"
+                headers = {
+                    "Authorization": f"Token {os.environ.get('DEEPGRAM_API_KEY')}",
+                }
+                
+                # Try to guess mime type from extension
+                mime_type = "audio/webm" if ext == ".webm" else "audio/mp4"
+                headers["Content-Type"] = mime_type
 
-        # Cleanup
-        os.remove(temp_path)
-        os.remove(wav_path)
+                with open(temp_path, "rb") as f:
+                    response = requests.post(url, headers=headers, data=f, timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    text = data.get("results", {}).get("channels", [{}])[0].get("alternatives", [{}])[0].get("transcript", "")
+                else:
+                    print(f"[Warning] Deepgram returned status: {response.status_code} - {response.text}")
+            except Exception as e:
+                print(f"[Warning] Deepgram API failed: {e}")
+
+        # 2. Try OpenAI Whisper API (Fallback if no Deepgram key)
+        if not text and os.environ.get("OPENAI_API_KEY"):
+            try:
+                from openai import OpenAI
+                client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+                with open(temp_path, "rb") as f:
+                    transcription = client.audio.transcriptions.create(
+                        file=(temp_path, f.read()),
+                        model="whisper-1",
+                        language="en",
+                        temperature=0.0,
+                    )
+                text = transcription.text
+                
+                # Whisper silence hallucination filter
+                lower_text = text.lower()
+                if "dimatorzok" in lower_text or "amara.org" in lower_text or "subtitles by" in lower_text or "субтитры" in lower_text or "translated by" in lower_text:
+                    text = ""
+            except Exception as e:
+                print(f"[Warning] OpenAI Whisper failed: {e}")
+
+        # 3. Fallback to Google SpeechRecognition
+        if not text:
+            try:
+                import speech_recognition as sr
+                from pydub import AudioSegment
+
+                wav_path = temp_path + ".wav"
+                try:
+                    audio = AudioSegment.from_file(temp_path)
+                    audio = audio.set_channels(1).set_frame_rate(16000)
+                    audio.export(wav_path, format="wav")
+                except Exception as e:
+                    return jsonify({"error": f"Audio processing failed (is ffmpeg installed?): {str(e)}"}), 500
+
+                recognizer = sr.Recognizer()
+                try:
+                    with sr.AudioFile(wav_path) as source:
+                        audio_data = recognizer.record(source)
+                        text = recognizer.recognize_google(audio_data)
+                except sr.UnknownValueError:
+                    return jsonify({"error": "No speech detected. Please speak clearly."}), 400
+                except sr.RequestError as e:
+                    return jsonify({"error": f"Speech recognition service error: {e}"}), 502
+                finally:
+                    if os.path.exists(wav_path):
+                        os.remove(wav_path)
+            except ImportError:
+                return jsonify({"error": "No transcription service available. Set GROQ_API_KEY."}), 500
+
+        if not text:
+            return jsonify({"error": "No speech detected."}), 400
 
         return jsonify({"text": text.strip()})
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Server exception: {str(e)}"}), 500
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 @app.route('/api/joints')

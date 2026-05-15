@@ -20,7 +20,7 @@ setup(
         ],
     },
     include_package_data=True,
-    install_requires=['setuptools', 'flask'],
+    install_requires=['setuptools', 'flask', 'SpeechRecognition', 'pydub'],
     zip_safe=True,
     maintainer='kathan',
     maintainer_email='kathanshah2004@gmail.com',

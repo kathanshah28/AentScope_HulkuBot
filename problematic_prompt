@@ -32,7 +32,7 @@ memory display example prompts: -
 1.) 
 
 prompt: - turn led red then green then blue then yellow then brown then purple and wait for 2 seconds after each step 
-prompt: - repeat previous task and inbetween also display the led color values also
+	prompt: - repeat previous task and inbetween also display the led color values also
 
 
 2.) 
