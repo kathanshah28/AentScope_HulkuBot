@@ -24,4 +24,21 @@ move in total left
 move third joint to 90 then enable drag mode then wait for 40 seconds then disable drag mode and again move joint to 0 
 
 Move the first joint to 90 degrees, then print here the new joint states, then move the first joint to 0 degrees, then print here 'Task is fully done!'
+
+
+memory display example prompts: -
+
+
+1.) 
+
+prompt: - turn led red then green then blue then yellow then brown then purple and wait for 2 seconds after each step 
+prompt: - repeat previous task and inbetween also display the led color values also
+
+
+2.) 
+
+prompt: - enable drag mode
+prompt:- display current joint values
+prompt: - disable drag mode
+prompt: - now move the arm to joint values you got after enabling drag mode
  
