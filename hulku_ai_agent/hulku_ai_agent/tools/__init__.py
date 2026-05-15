@@ -11,11 +11,12 @@ from hulku_ai_agent.tools.go_home import GoHomeTool
 from hulku_ai_agent.tools.wait import WaitTool
 from hulku_ai_agent.tools.print_message import PrintMessageTool
 from hulku_ai_agent.tools.rgb_light import RGBLightTool
+from hulku_ai_agent.tools.save_memory import SaveMemoryTool
 
 __all__ = [
     'BaseTool', 'ToolResult', 'ToolRegistry',
     'MoveJointsTool', 'MoveGripperTool', 'BuzzerTool',
     'TorqueModeTool', 'GetJointStatesTool', 'GoHomeTool',
-    'WaitTool', 'PrintMessageTool', 'RGBLightTool',
+    'WaitTool', 'PrintMessageTool', 'RGBLightTool', 'SaveMemoryTool',
 ]
 
