@@ -24,12 +24,13 @@ class MemoryManager:
     def __init__(self, config: Dict[str, Any], db_path: str = "./memory_db"):
         self.config = config
         self._db_path = db_path
-        self._collection = None
+        self._collection = None # For Episodic Memory (tool experiences)
+        self._user_collection = None # For Declarative Memory (user facts)
         self._db_client = None
         self._conversation_history: List[Dict[str, str]] = []
 
-        # Try to initialize Episodic Memory (ChromaDB)
-        self._init_episodic_memory()
+        # Try to initialize Episodic and Declarative Memory (ChromaDB)
+        self._init_vector_memory()
 
     def get_conversation_history(self) -> List[Dict[str, str]]:
         """Returns the short-term conversation history."""
@@ -42,22 +43,38 @@ class MemoryManager:
         if len(self._conversation_history) > 10:
             self._conversation_history = self._conversation_history[-10:]
 
-    def _init_episodic_memory(self) -> None:
+    def _init_vector_memory(self) -> None:
+        """
+        Initializes the local Vector Database (ChromaDB) for both:
+        1. Episodic Memory (agent_experiences) - Past successful tool sequences.
+        2. Declarative/User Memory (user_facts) - Explicitly saved facts by the user.
+        Gracefully degrades if Chroma is unavailable or fails.
+        """
         if not CHROMA_AVAILABLE:
-            logger.warning("ChromaDB not installed. Episodic Memory disabled.")
+            logger.warning("ChromaDB not installed. Vector Memories (Episodic/Declarative) disabled.")
             return
 
         try:
             os.makedirs(self._db_path, exist_ok=True)
             self._db_client = chromadb.PersistentClient(path=self._db_path, settings=Settings(anonymized_telemetry=False))
+
+            # Episodic Memory collection (Existing)
             self._collection = self._db_client.get_or_create_collection(
                 name="agent_experiences",
                 metadata={"hnsw:space": "cosine"}
             )
-            logger.info(f"Episodic Memory initialized at {self._db_path}")
+
+            # Declarative Memory collection (New 5th Layer)
+            self._user_collection = self._db_client.get_or_create_collection(
+                name="user_facts",
+                metadata={"hnsw:space": "cosine"}
+            )
+
+            logger.info(f"Vector Memories (Episodic & Declarative) initialized at {self._db_path}")
         except Exception as e:
-            logger.error(f"Failed to initialize Vector DB: {e}. Episodic Memory disabled.")
+            logger.error(f"Failed to initialize Vector DB: {e}. Vector Memories disabled.")
             self._collection = None
+            self._user_collection = None
 
     def get_working_memory(self, joint_state: Any, gpio_state: List[float], joint_names: List[str]) -> str:
         """
@@ -164,3 +181,56 @@ class MemoryManager:
             logger.info(f"Saved successful experience to memory: {doc_text}")
         except Exception as e:
             logger.error(f"Error saving to episodic memory: {e}")
+
+    def retrieve_user_memory(self, user_query: str, threshold: float = 0.85) -> str:
+        """
+        Queries Vector DB for past explicitly saved user facts relevant to the current prompt.
+        """
+        if not self._user_collection:
+            return ""
+
+        try:
+            results = self._user_collection.query(
+                query_texts=[user_query],
+                n_results=3
+            )
+
+            if not results or not results['documents'] or not results['documents'][0]:
+                return ""
+
+            facts = []
+            for i, doc in enumerate(results['documents'][0]):
+                distance = results['distances'][0][i]
+                similarity = 1.0 - distance
+
+                if similarity >= threshold:
+                    facts.append(doc)
+
+            if facts:
+                return "Relevant known facts from user memory:\n" + "\n".join(f"- {fact}" for fact in facts)
+            return ""
+
+        except Exception as e:
+            logger.error(f"Error querying user memory: {e}")
+            return ""
+
+    def save_user_memory(self, fact: str) -> None:
+        """
+        Saves an explicit user fact or preference to the Declarative Vector DB.
+        """
+        if not self._user_collection:
+            logger.warning("Attempted to save user memory but vector DB is not initialized.")
+            return
+
+        try:
+            import uuid
+            doc_id = str(uuid.uuid4())
+
+            self._user_collection.add(
+                documents=[fact],
+                metadatas=[{"type": "user_fact"}],
+                ids=[doc_id]
+            )
+            logger.info(f"Saved user fact to memory: {fact}")
+        except Exception as e:
+            logger.error(f"Error saving to user memory: {e}")

@@ -127,17 +127,21 @@ class HulkuAgentNode(Node):
         self._registry.register(PrintMessageTool(self))
         self._registry.register(RGBLightTool(self, self._gpio_pub, self._gpio_state))
 
+        # ==============================
+        # MEMORY MANAGER
+        # ==============================
+        self._memory_manager = MemoryManager(config=self._config)
+
+        # Register SaveMemoryTool with access to the MemoryManager
+        from hulku_ai_agent.tools.save_memory import SaveMemoryTool
+        self._registry.register(SaveMemoryTool(self._memory_manager))
+
         self.get_logger().info(f"Registered tools:\n{self._registry.list_tools()}")
 
         # ==============================
         # LLM BACKEND
         # ==============================
         self._llm_backend = self._create_backend(provider, model, api_key)
-
-        # ==============================
-        # MEMORY MANAGER
-        # ==============================
-        self._memory_manager = MemoryManager(config=self._config)
 
         # ==============================
         # AGENT CORE

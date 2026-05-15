@@ -12,6 +12,8 @@ The memory layers address the following shortcomings of the previous ReAct loop:
 
 The newly created `MemoryManager` module (`hulku_ai_agent/hulku_ai_agent/memory/memory_manager.py`) seamlessly integrates these layers into the `AgentCore` and `HulkuAgentNode`.
 
+**New Update:** Added a 5th layer—**Declarative Memory (User Facts)**—to allow the system to explicitly memorize and recall facts through a persistent RAG system.
+
 ## 1. Short-Term Memory (Conversation History)
 
 **Purpose**: Maintains context of the recent conversation, allowing the user to refer back to previous commands (e.g., "repeat previous task").
@@ -47,7 +49,7 @@ The newly created `MemoryManager` module (`hulku_ai_agent/hulku_ai_agent/memory/
 ## 4. Episodic Memory (Experience via RAG)
 
 **Purpose**: Allows the agent to recall successful long-chain tasks and adapt faster via few-shot prompting, enabling "learning by doing."
-**Implementation**: Uses a local Vector DB via ChromaDB.
+**Implementation**: Uses a local Vector DB via ChromaDB (collection: `agent_experiences`).
 
 **Write (Learning)**:
 - In `agent_core.py`, when a sequence of tool calls successfully completes and yields a final text response, the `MemoryManager` captures the user's initial command and the array of tools executed.
@@ -57,6 +59,21 @@ The newly created `MemoryManager` module (`hulku_ai_agent/hulku_ai_agent/memory/
 - Upon receiving a new user command, `AgentCore` invokes `MemoryManager.retrieve_episodic_memory()`.
 - The user's command is embedded and evaluated against the database.
 - If similar successful tasks are found with a cosine similarity > 0.85, the tool trajectories are attached to the end of the user's prompt as "Previous successful experiences."
+
+## 5. Declarative Memory (User Facts via RAG)
+
+**Purpose**: Gives the agent the ability to remember explicit facts, user preferences, and specific references indefinitely (e.g., "The user's favorite color is blue" or "The home position for the gripper is 90 degrees").
+**Implementation**: Uses the same local ChromaDB, but a separate collection (`user_facts`).
+
+**Write (Explicit Save via Tool)**:
+- A dedicated tool `save_memory` is exposed to the LLM.
+- When the user issues a command like "remember my name is Jules," the LLM intelligently invokes `save_memory(fact="User's name is Jules")`.
+- `MemoryManager.save_user_memory()` explicitly saves this fact into the `user_facts` collection in ChromaDB.
+
+**Retrieve (Automatic Context Injection)**:
+- Upon receiving any user command, `AgentCore` queries `MemoryManager.retrieve_user_memory()`.
+- If the user's query mathematically aligns (cosine similarity > 0.85) with previously saved facts, those facts are automatically retrieved.
+- They are injected seamlessly into the System Prompt before the LLM generates a response, providing silent but reliable context (e.g., *Relevant known facts: User's name is Jules*).
 
 ## Graceful DB Degradation
 ChromaDB instances are safely caught using `try-except` blocks. If Vector DB fails to instantiate or query properly (due to missing packages or local read/write issues), the agent will gracefully fall back to executing tasks solely on Semantic and Working Memory, without crashing the core ROS2 loop.

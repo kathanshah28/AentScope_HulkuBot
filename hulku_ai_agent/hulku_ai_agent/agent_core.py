@@ -64,13 +64,19 @@ class AgentCore:
         # Build comprehensive system prompt
         augmented_system_prompt = f"{self._system_prompt}\n\n---\n{semantic_mem}\n\n---\nReal-Time Hardware State (Working Memory):\n{working_mem}\n"
 
-        # Gather episodic memory
+        # Gather declarative user memory (Layer 5)
+        user_mem = self._memory_manager.retrieve_user_memory(user_message)
+        if user_mem:
+            # Inject relevant facts into the system prompt
+            augmented_system_prompt = f"{augmented_system_prompt}\n---\n{user_mem}\n"
+
+        # Gather episodic memory (Layer 4)
         episodic_mem = self._memory_manager.retrieve_episodic_memory(user_message)
         user_content = user_message
         if episodic_mem:
             user_content = f"{episodic_mem}\n\nUser Command: {user_message}"
 
-        # Gather short-term conversation history
+        # Gather short-term conversation history (Layer 1)
         conv_history = self._memory_manager.get_conversation_history()
 
         messages = [
