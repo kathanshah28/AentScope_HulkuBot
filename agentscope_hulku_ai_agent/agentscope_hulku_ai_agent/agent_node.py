@@ -299,6 +299,17 @@ class HulkuAgentNode(Node):
     def _joint_state_cb(self, msg: JointState) -> None:
         self.current_joint_state = msg
 
+    def publish_feedback(self, state_str: str):
+        """Publishes feedback directly, e.g. for print_message tool."""
+        if self._current_goal_handle is not None:
+            from custom_interfaces.action import ArmTask
+            feedback = ArmTask.Feedback()
+            feedback.state = state_str
+            self._current_goal_handle.publish_feedback(feedback)
+        else:
+            self.get_logger().info(f"[Live Feedback] {state_str}")
+
+
     def _execute_callback(self, goal_handle):
         """Handle incoming ArmTask action goals."""
         user_message = goal_handle.request.json_command

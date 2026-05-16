@@ -30,7 +30,18 @@ class PrintMessageTool(BaseTool):
             return ToolResult(False, "Message cannot be empty.")
         
         # Inject the special tag so the GUI knows to render it as a chat bubble
-        if hasattr(self._node, '_agent') and self._node._agent._feedback_cb:
+        if hasattr(self._node, 'publish_feedback'):
+            self._node.publish_feedback(f"[USER_MSG]{message}")
+        elif hasattr(self._node, '_agent') and hasattr(self._node._agent, '_feedback_cb') and self._node._agent._feedback_cb:
             self._node._agent._feedback_cb(f"[USER_MSG]{message}")
+        elif hasattr(self._node, '_current_goal_handle') and self._node._current_goal_handle:
+            try:
+                # Fallback for nodes that define _current_goal_handle but no publish_feedback method
+                from custom_interfaces.action import ArmTask
+                feedback_msg = ArmTask.Feedback()
+                feedback_msg.state = f"[USER_MSG]{message}"
+                self._node._current_goal_handle.publish_feedback(feedback_msg)
+            except Exception:
+                pass
             
         return ToolResult(True, "Successfully printed message to the UI.")
