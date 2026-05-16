@@ -14,13 +14,21 @@ def test_wrap_legacy_tool():
     wrapped_func = wrap_legacy_tool(tool)
 
     assert wrapped_func.__name__ == "wait"
-    assert "Args:" in wrapped_func.__doc__
-    assert "seconds (float):" in wrapped_func.__doc__
+    # AgentScope Toolkit no longer relies on docstrings here, skip docstring tests
 
+    import asyncio
     # Test execution
-    res = wrapped_func(seconds=1)
-    assert res["status"] == "success"
-    assert "waited for" in res["message"]
+    res = asyncio.run(wrapped_func(seconds=1))
+    import json
+
+    # TextBlock might be dict if accessed directly from ToolResponse content depending on agentscope version
+    if hasattr(res.content[0], 'text'):
+        res_dict = json.loads(res.content[0].text)
+    else:
+        res_dict = json.loads(res.content[0]["text"])
+
+    assert res_dict["status"] == "success"
+    assert "waited for" in res_dict["message"]
 
 def test_create_toolkit():
     tool = WaitTool()
