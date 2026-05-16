@@ -30,7 +30,20 @@ class PrintMessageTool(BaseTool):
             return ToolResult(False, "Message cannot be empty.")
         
         # Inject the special tag so the GUI knows to render it as a chat bubble
-        if hasattr(self._node, '_agent') and self._node._agent._feedback_cb:
-            self._node._agent._feedback_cb(f"[USER_MSG]{message}")
+        feedback_str = f"[USER_MSG]{message}"
+
+        # Legacy way (AgentCore)
+        if hasattr(self._node, '_agent') and hasattr(self._node._agent, '_feedback_cb') and self._node._agent._feedback_cb:
+            self._node._agent._feedback_cb(feedback_str)
+        # New way (HulkuAgentNode with AgentScope)
+        elif hasattr(self._node, '_current_goal_handle') and self._node._current_goal_handle:
+            try:
+                from custom_interfaces.action import ArmTask
+                feedback_msg = ArmTask.Feedback()
+                feedback_msg.state = feedback_str
+                self._node._current_goal_handle.publish_feedback(feedback_msg)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Could not publish feedback: {e}")
             
         return ToolResult(True, "Successfully printed message to the UI.")
