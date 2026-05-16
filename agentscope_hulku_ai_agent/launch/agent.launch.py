@@ -15,9 +15,9 @@ def generate_launch_description():
 
     return LaunchDescription([
         Node(
-            package='hulku_ai_agent',
+            package='agentscope_hulku_ai_agent',
             executable='agent_node',
-            name='hulku_agent_node',
+            name='agentscope_hulku_agent_node',
             output='screen',
             parameters=[{
                 'config_file': config_file,

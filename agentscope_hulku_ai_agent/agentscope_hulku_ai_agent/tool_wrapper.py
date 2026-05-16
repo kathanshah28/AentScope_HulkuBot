@@ -1,56 +1,106 @@
-"""Wrapper to adapt legacy Hulku tools to AgentScope."""
+"""
+Adapter layer: converts legacy BaseTool instances into AgentScope-compatible
+tool functions registered in a Toolkit.
 
-import inspect
+Key differences from the previous implementation:
+  - Returns agentscope.tool._response.ToolResponse (with TextBlock content)
+    instead of a plain dict, so AgentScope's tool-call lifecycle works correctly.
+  - Passes the tool's JSON schema directly to register_tool_function(json_schema=...)
+    instead of relying on fragile docstring/signature reconstruction.
+  - Accepts an optional postprocess_func that is forwarded to register_tool_function,
+    allowing the caller (agent_node) to publish ROS 2 feedback after every tool call.
+"""
+
+import json
+import logging
+from typing import Callable, Optional
+
 from agentscope.tool import Toolkit
+from agentscope.message import TextBlock
+from agentscope.tool._response import ToolResponse
 
-def wrap_legacy_tool(legacy_tool_instance):
+logger = logging.getLogger(__name__)
+
+
+def _build_agentscope_json_schema(legacy_tool) -> dict:
     """
-    Wraps a legacy BaseTool instance into a Python function that AgentScope Toolkit can parse.
-    AgentScope parses docstrings to generate JSON schemas, so we construct a dynamic function
-    with a docstring matching the legacy tool's description and parameters.
+    Convert a BaseTool's parameter dict into the JSON schema format expected
+    by AgentScope's register_tool_function:
+
+      {
+        "type": "function",
+        "function": {
+          "name": "...",
+          "description": "...",
+          "parameters": { <JSON Schema object> }
+        }
+      }
     """
-    name = legacy_tool_instance.name
-    desc = legacy_tool_instance.description
-    params = legacy_tool_instance.parameters.get("properties", {})
-    required = legacy_tool_instance.parameters.get("required", [])
+    return {
+        "type": "function",
+        "function": {
+            "name": legacy_tool.name,
+            "description": legacy_tool.description,
+            "parameters": legacy_tool.parameters,
+        },
+    }
 
-    def generic_tool_func(**kwargs) -> dict:
-        result = legacy_tool_instance.execute(**kwargs)
-        if result.success:
-            return {"status": "success", "data": result.data or {}, "message": result.message}
-        else:
-            return {"status": "error", "message": result.message}
 
-    generic_tool_func.__name__ = name
+def wrap_legacy_tool(legacy_tool_instance) -> Callable:
+    """
+    Wraps a legacy BaseTool into an async function that AgentScope can execute.
+    The function returns a ToolResponse so the framework's streaming and
+    post-processing hooks work correctly.
+    """
+    tool_name = legacy_tool_instance.name
 
-    docstring_lines = [desc, "Args:"]
-    for p_name, p_info in params.items():
-        p_type = p_info.get("type", "string")
-        if p_type == "number": p_type = "float"
-        elif p_type == "integer": p_type = "int"
-        elif p_type == "string": p_type = "str"
-        elif p_type == "boolean": p_type = "bool"
-        elif p_type == "array": p_type = "list"
-        elif p_type == "object": p_type = "dict"
+    async def tool_func(**kwargs) -> ToolResponse:
+        try:
+            result = legacy_tool_instance.execute(**kwargs)
+            if result.success:
+                payload = {"status": "success", "message": result.message}
+                if result.data:
+                    payload["data"] = result.data
+            else:
+                payload = {"status": "error", "message": result.message}
+        except Exception as exc:
+            logger.error("Tool '%s' raised an exception: %s", tool_name, exc)
+            payload = {"status": "error", "message": str(exc)}
 
-        p_desc = p_info.get("description", "")
-        docstring_lines.append(f"    {p_name} ({p_type}): {p_desc}")
+        return ToolResponse(
+            content=[TextBlock(type="text", text=json.dumps(payload, ensure_ascii=False))]
+        )
 
-    generic_tool_func.__doc__ = "\n".join(docstring_lines)
+    tool_func.__name__ = tool_name
+    return tool_func
 
-    sig_params = []
-    for p_name, p_info in params.items():
-        default = inspect.Parameter.empty if p_name in required else None
-        p = inspect.Parameter(p_name, inspect.Parameter.POSITIONAL_OR_KEYWORD, default=default)
-        sig_params.append(p)
 
-    generic_tool_func.__signature__ = inspect.Signature(sig_params)
+def create_toolkit(
+    legacy_tools_list: list,
+    postprocess_func: Optional[Callable] = None,
+) -> Toolkit:
+    """
+    Build an AgentScope Toolkit from a list of legacy BaseTool instances.
 
-    return generic_tool_func
-
-def create_toolkit(legacy_tools_list) -> Toolkit:
+    Args:
+        legacy_tools_list: List of BaseTool subclass instances.
+        postprocess_func:  Optional hook called after every tool execution.
+                           Receives (ToolUseBlock, ToolResponse) and can return
+                           a modified ToolResponse or None to keep the original.
+                           Used to publish ROS 2 feedback from the agent node.
+    """
     tk = Toolkit()
     for tool_instance in legacy_tools_list:
         func = wrap_legacy_tool(tool_instance)
-        tk.register_tool_function(func)
+        schema = _build_agentscope_json_schema(tool_instance)
+
+        kwargs = dict(
+            tool_func=func,
+            json_schema=schema,
+            postprocess_func=postprocess_func,
+        )
+
+        tk.register_tool_function(**kwargs)
+        logger.info("Registered tool: %s", tool_instance.name)
+
     return tk
